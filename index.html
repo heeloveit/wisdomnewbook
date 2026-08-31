@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>위즈덤하우스 SNS 카피 생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  * { box-sizing: border-box; font-family: 'Gowun Dodum', sans-serif; }
+  body {
+    margin: 0;
+    background: #FBF3EA;
+    color: #4A3F35;
+    min-height: 100vh;
+    padding: 36px 16px;
+    position: relative;
+    overflow-x: hidden;
+  }
+  .blob { position: absolute; border-radius: 50%; filter: blur(2px); }
+  .blob-1 { top: -60px; right: -60px; width: 220px; height: 220px; background: #F6D9C6; opacity: .6; }
+  .blob-2 { bottom: -80px; left: -80px; width: 260px; height: 260px; background: #D9E6D0; opacity: .55; }
+  .wrap { max-width: 880px; margin: 0 auto; position: relative; z-index: 1; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #fff; padding: 7px 16px; border-radius: 999px;
+    font-size: 13px; color: #8FA684; font-weight: 500;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.05); margin-bottom: 14px;
+  }
+  h1 {
+    font-family: 'Jua', sans-serif; font-weight: 400;
+    font-size: clamp(28px, 4.5vw, 42px); margin: 0 0 8px 0;
+  }
+  p.sub { margin: 0 0 32px 0; color: #8A7C6B; font-size: 15.5px; line-height: 1.7; }
+  .grid { display: grid; gap: 22px; }
+  .card {
+    background: #fff; border-radius: 28px; padding: 26px;
+    box-shadow: 0 10px 30px rgba(180,150,110,0.12); position: relative;
+  }
+  .pill-label {
+    display: inline-block; font-size: 12.5px; font-weight: 500;
+    padding: 5px 14px; border-radius: 999px; margin-bottom: 14px;
+  }
+  .pill-1 { background: #EFF4EA; color: #7FA070; }
+  .pill-2 { background: #FBEFE3; color: #D9A26B; }
+
+  /* Source tabs */
+  .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab-btn {
+    border: 2px solid #F0E9DD; background: #FFFCF7; color: #A79C86;
+    border-radius: 999px; padding: 9px 18px; font-size: 14px; font-weight: 500;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+    transition: all .15s ease;
+  }
+  .tab-btn.active { background: #8FB57E; border-color: #8FB57E; color: #fff; }
+
+  textarea {
+    width: 100%; resize: vertical; border: 2px solid #F0E9DD; border-radius: 20px;
+    padding: 16px 18px; font-size: 15px; line-height: 1.75; background: #FFFCF7;
+    color: #4A3F35; outline: none;
+  }
+  textarea:focus { outline: 3px solid #A8C3A0; outline-offset: 2px; }
+  textarea::placeholder { color: #C4B8A8; }
+
+  .dropzone {
+    border: 2px dashed #E4DAC0; border-radius: 20px; padding: 32px 18px;
+    text-align: center; background: #FFFCF7; cursor: pointer; transition: border-color .15s;
+  }
+  .dropzone:hover, .dropzone.dragover { border-color: #8FB57E; background: #F6FAF3; }
+  .dropzone .icon { font-size: 30px; margin-bottom: 8px; }
+  .dropzone .main-text { font-size: 15px; color: #6B6250; margin-bottom: 4px; }
+  .dropzone .sub-text { font-size: 12.5px; color: #B3A692; }
+  .file-preview {
+    margin-top: 14px; background: #F6FAF3; border-radius: 16px; padding: 14px 16px;
+    font-size: 13px; color: #6B8A5A; display: none;
+  }
+  .file-preview .file-name { font-weight: 500; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .file-preview .file-name button {
+    background: none; border: none; color: #B3A692; cursor: pointer; font-size: 13px;
+  }
+  .file-preview .snippet { color: #8A9C7C; line-height: 1.6; max-height: 80px; overflow: hidden; }
+
+  .row { display: flex; gap: 12px; align-items: center; margin-top: 18px; flex-wrap: wrap; }
+  button { border: none; cursor: pointer; font-size: 15.5px; }
+  .btn-generate {
+    background: #8FB57E; color: #fff; border-radius: 999px; padding: 13px 26px;
+    font-weight: 500; display: inline-flex; align-items: center; gap: 8px;
+    box-shadow: 0 6px 16px rgba(143,181,126,0.4); transition: background .15s, transform .15s;
+  }
+  .btn-generate:hover:not(:disabled) { background: #7FA070; transform: translateY(-1px); }
+  .btn-generate:disabled { opacity: .55; cursor: not-allowed; }
+  .btn-reset {
+    background: transparent; color: #B3A692; font-size: 14px;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-reset:hover { color: #4A3F35; }
+  .btn-copy {
+    background: #FBEFE3; color: #C9895A; border-radius: 999px; padding: 10px 20px;
+    font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn-copy:hover { background: #FBE2D3; }
+  .error { color: #D97F5A; font-size: 13.5px; margin-top: 10px; font-weight: 500; }
+  .output-placeholder { color: #C4B8A8; font-size: 14.5px; line-height: 1.8; }
+  .output-text { white-space: pre-wrap; font-size: 15.5px; line-height: 1.95; color: #4A3F35; margin-bottom: 20px; max-width: 86%; }
+  .stamp {
+    position: absolute; top: 22px; right: 24px; width: 68px; height: 68px; border-radius: 50%;
+    background: #FBE2D3; display: none; align-items: center; justify-content: center;
+    transform: rotate(-8deg); font-size: 11px; font-weight: 500; color: #D97F5A;
+    text-align: center; line-height: 1.3; box-shadow: 0 6px 14px rgba(217,127,90,0.25);
+    animation: float 3s ease-in-out infinite;
+  }
+  @keyframes float { 0%,100% { transform: translateY(0) rotate(-8deg);} 50% { transform: translateY(-8px) rotate(-8deg);} }
+  @keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
+  @media (min-width: 760px) { .grid { grid-template-columns: 1fr 1fr; } }
+</style>
+</head>
+<body>
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="wrap">
+    <div class="badge">✨ 위즈덤하우스 SNS 카피 생성기</div>
+    <h1>새로나온 책 카피 생성해요! 🍡</h1>
+    <p class="sub">보도자료나 노션 기획의도를 붙여 넣어주세요!</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="pill-label pill-1">STEP 1 · 원고 준비하기</div>
+
+        <div class="tabs">
+          <button id="tabFile" class="tab-btn active">📎 파일 첨부</button>
+          <button id="tabText" class="tab-btn">✏️ 직접 붙여넣기</button>
+        </div>
+
+        <!-- 파일 첨부 -->
+        <div id="panelFile">
+          <div id="dropzone" class="dropzone">
+            <div class="icon">📄</div>
+            <div class="main-text">보도자료 파일을 여기에 끌어다 놓거나 클릭해서 선택하세요</div>
+            <div class="sub-text">.txt / .docx / .pdf 지원</div>
+          </div>
+          <input type="file" id="fileInput" accept=".txt,.docx,.pdf" style="display:none;" />
+          <div id="filePreview" class="file-preview">
+            <div class="file-name">
+              <span id="fileNameText"></span>
+              <button id="removeFileBtn">삭제</button>
+            </div>
+            <div id="fileSnippet" class="snippet"></div>
+          </div>
+        </div>
+
+        <!-- 직접 붙여넣기 -->
+        <div id="panelText" style="display:none;">
+          <textarea id="input" rows="10" placeholder="편집자 기획의도나 보도자료 내용을 여기에 붙여넣어 주세요..."></textarea>
+        </div>
+
+        <div id="error" class="error" style="display:none;"></div>
+
+        <div class="row">
+          <button id="generateBtn" class="btn-generate">✏️ <span id="generateLabel">카피 생성하기</span></button>
+          <button id="resetBtn" class="btn-reset">↺ 초기화</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div id="stamp" class="stamp">완성!<br/>🍰</div>
+        <div class="pill-label pill-2">STEP 2 · 완성된 카피</div>
+        <div id="outputArea">
+          <div class="output-placeholder">원고를 입력하고 생성 버튼을 누르면 이곳에 카피가 몽글몽글 나타나요 ☁️</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  const tabFile = document.getElementById('tabFile');
+  const tabText = document.getElementById('tabText');
+  const panelFile = document.getElementById('panelFile');
+  const panelText = document.getElementById('panelText');
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('fileInput');
+  const filePreview = document.getElementById('filePreview');
+  const fileNameText = document.getElementById('fileNameText');
+  const fileSnippet = document.getElementById('fileSnippet');
+  const removeFileBtn = document.getElementById('removeFileBtn');
+  const textInput = document.getElementById('input');
+  const errorEl = document.getElementById('error');
+  const generateBtn = document.getElementById('generateBtn');
+  const generateLabel = document.getElementById('generateLabel');
+  const resetBtn = document.getElementById('resetBtn');
+  const outputArea = document.getElementById('outputArea');
+  const stamp = document.getElementById('stamp');
+
+  let activeTab = 'file'; // 'file' | 'text'
+  let extractedFileText = '';
+
+  function switchTab(tab) {
+    activeTab = tab;
+    tabFile.classList.toggle('active', tab === 'file');
+    tabText.classList.toggle('active', tab === 'text');
+    panelFile.style.display = tab === 'file' ? 'block' : 'none';
+    panelText.style.display = tab === 'text' ? 'block' : 'none';
+    errorEl.style.display = 'none';
+  }
+  tabFile.addEventListener('click', () => switchTab('file'));
+  tabText.addEventListener('click', () => switchTab('text'));
+
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  });
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  removeFileBtn.addEventListener('click', () => {
+    extractedFileText = '';
+    fileInput.value = '';
+    filePreview.style.display = 'none';
+    dropzone.style.display = 'block';
+  });
+
+  async function handleFile(file) {
+    errorEl.style.display = 'none';
+    const name = file.name.toLowerCase();
+
+    try {
+      let text = '';
+      if (name.endsWith('.txt')) {
+        text = await file.text();
+      } else if (name.endsWith('.docx')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        text = result.value;
+      } else if (name.endsWith('.pdf')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        const pages = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          pages.push(content.items.map((it) => it.str).join(' '));
+        }
+        text = pages.join('\n\n');
+      } else {
+        throw new Error('지원하지 않는 파일 형식이에요.');
+      }
+
+      text = text.trim();
+      if (!text) throw new Error('파일에서 텍스트를 읽지 못했어요.');
+
+      extractedFileText = text;
+      fileNameText.textContent = '📄 ' + file.name;
+      fileSnippet.textContent = text.length > 160 ? text.slice(0, 160) + '...' : text;
+      filePreview.style.display = 'block';
+      dropzone.style.display = 'none';
+    } catch (err) {
+      errorEl.textContent = '파일을 읽는 중 문제가 생겼어요. 다른 파일이거나 텍스트 붙여넣기를 이용해 주세요.';
+      errorEl.style.display = 'block';
+    }
+  }
+
+  function setLoading(loading) {
+    generateBtn.disabled = loading;
+    generateLabel.textContent = loading ? '쓰는 중...' : '카피 생성하기';
+  }
+
+  resetBtn.addEventListener('click', () => {
+    textInput.value = '';
+    extractedFileText = '';
+    fileInput.value = '';
+    filePreview.style.display = 'none';
+    dropzone.style.display = 'block';
+    errorEl.style.display = 'none';
+    stamp.style.display = 'none';
+    outputArea.innerHTML = '<div class="output-placeholder">원고를 입력하고 생성 버튼을 누르면 이곳에 카피가 몽글몽글 나타나요 ☁️</div>';
+  });
+
+  generateBtn.addEventListener('click', async () => {
+    const text = activeTab === 'file' ? extractedFileText.trim() : textInput.value.trim();
+    errorEl.style.display = 'none';
+
+    if (!text) {
+      errorEl.textContent = activeTab === 'file'
+        ? '먼저 보도자료 파일을 첨부해 주세요.'
+        : '보도자료 또는 기획의도 내용을 먼저 입력해 주세요.';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    setLoading(true);
+    stamp.style.display = 'none';
+    outputArea.innerHTML = '<div class="output-placeholder">톤을 맞춰서 쓰는 중이에요...</div>';
+
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ input: text })
+      });
+      const data = await res.json();
+
+      if (!res.ok || !data.output) {
+        throw new Error(data.error || 'generation failed');
+      }
+
+      outputArea.innerHTML = '';
+      const textDiv = document.createElement('div');
+      textDiv.className = 'output-text';
+      textDiv.textContent = data.output;
+      outputArea.appendChild(textDiv);
+
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'btn-copy';
+      copyBtn.innerHTML = '📋 텍스트 복사';
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(data.output);
+          copyBtn.innerHTML = '✅ 복사됐어요';
+          setTimeout(() => { copyBtn.innerHTML = '📋 텍스트 복사'; }, 1600);
+        } catch (e) {}
+      });
+      outputArea.appendChild(copyBtn);
+
+      stamp.style.display = 'flex';
+    } catch (e) {
+      outputArea.innerHTML = '<div class="output-placeholder">원고를 입력하고 생성 버튼을 누르면 이곳에 카피가 몽글몽글 나타나요 ☁️</div>';
+      errorEl.textContent = '카피 생성 중 문제가 생겼어요: ' + (e.message || '알 수 없는 오류');
+      errorEl.style.display = 'block';
+    } finally {
+      setLoading(false);
+    }
+  });
+</script>
+</body>
+</html>
