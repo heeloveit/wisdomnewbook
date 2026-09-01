@@ -133,13 +133,14 @@
 
   <div class="feed">
 
+    <!-- Post 1: input -->
     <div class="post">
       <div class="post-header">
         <div class="who">
           <span class="avatar green">🍡</span>
           <div>
             <div class="name">wisdomhouse_newbook</div>
-            <div class="tag">STEP 1 · 원고 준비하기</div>
+            <div class="tag" id="stepTag">STEP 1 · 원고 준비하기</div>
           </div>
         </div>
         <span class="dots">•••</span>
@@ -147,8 +148,8 @@
 
       <div class="media">
         <div class="tabs">
-          <button id="tabFile" class="tab-btn active">📎 파일 첨부</button>
-          <button id="tabText" class="tab-btn">✏️ 직접 붙여넣기</button>
+          <button id="tabFile" class="tab-btn active">📚 새로나온책</button>
+          <button id="tabText" class="tab-btn">🔍 위뷰</button>
         </div>
 
         <div id="panelFile">
@@ -168,7 +169,7 @@
         </div>
 
         <div id="panelText" style="display:none;">
-          <textarea id="input" rows="7" placeholder="편집자 기획의도나 보도자료 내용을 여기에 붙여넣어 주세요..."></textarea>
+          <textarea id="input" rows="7" placeholder="위뷰 서평단을 모집할 도서 정보(제목, 소개, 모집 조건 등)를 붙여넣어 주세요..."></textarea>
         </div>
       </div>
 
@@ -180,7 +181,7 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>
       </div>
 
-      <div class="caption"><b>wisdomhouse_newbook</b> 보도자료나 노션 기획의도를 붙여 넣어주세요!</div>
+      <div class="caption" id="captionText"><b>wisdomhouse_newbook</b> 보도자료나 노션 기획의도를 붙여 넣어주세요!</div>
 
       <div id="error" class="error" style="display:none;"></div>
 
@@ -190,6 +191,7 @@
       </div>
     </div>
 
+    <!-- Post 2: output -->
     <div class="post">
       <div class="post-header">
         <div class="who">
@@ -246,6 +248,8 @@
   const outputArea = document.getElementById('outputArea');
   const copyWrap = document.getElementById('copyWrap');
   const copyBtn = document.getElementById('copyBtn');
+  const captionText = document.getElementById('captionText');
+  const stepTag = document.getElementById('stepTag');
 
   let activeTab = 'file';
   let extractedFileText = '';
@@ -258,6 +262,14 @@
     panelFile.style.display = tab === 'file' ? 'block' : 'none';
     panelText.style.display = tab === 'text' ? 'block' : 'none';
     errorEl.style.display = 'none';
+
+    if (tab === 'file') {
+      stepTag.textContent = 'STEP 1 · 새로나온책';
+      captionText.innerHTML = '<b>wisdomhouse_newbook</b> 보도자료나 노션 기획의도를 붙여 넣어주세요!';
+    } else {
+      stepTag.textContent = 'STEP 1 · 위뷰 모집';
+      captionText.innerHTML = '<b>wisdomhouse_newbook</b> 위뷰 서평단을 모집할 도서 정보를 붙여 넣어주세요!';
+    }
   }
   tabFile.addEventListener('click', () => switchTab('file'));
   tabText.addEventListener('click', () => switchTab('text'));
@@ -354,7 +366,7 @@
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input: text })
+        body: JSON.stringify({ input: text, mode: activeTab === 'file' ? 'book' : 'review' })
       });
       const data = await res.json();
 
